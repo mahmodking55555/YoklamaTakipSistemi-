@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Öğretmen Paneli - Yoklama Sistemi</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body {
+            background: linear-gradient(to right, #0f2027, #203a43, #2c5364);
+            color: #fff;
+            font-family: 'Poppins', sans-serif;
+        }
+        .profile-box {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 15px;
+            width: 200px;
+            text-align: center;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+        }
+        .profile-box img {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            border: 3px solid #fff;
+            margin-bottom: 10px;
+        }
+        .profile-box h5 {
+            margin: 10px 0 5px;
+            font-size: 18px;
+        }
+        .container {
+            max-width: 600px;
+            margin-top: 150px;
+            padding: 20px;
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+        }
+        h2 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .btn-info {
+            background-color: #1abc9c;
+            border: none;
+        }
+        .btn-info:hover {
+            background-color: #16a085;
+        }
+        .lecture-list {
+            margin-top: 30px;
+        }
+        .lecture-item {
+            margin-bottom: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+        }
+        .lecture-item h5 {
+            margin-bottom: 10px;
+        }
+        .students-list {
+            margin-top: 10px;
+            font-size: 14px;
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+    <div class="profile-box">
+        <img src="https://via.placeholder.com/80" alt="Profile">
+        <h5 id="teacherName"></h5>
+        <small>Öğretmen</small>
+        <hr style="border-color: rgba(255, 255, 255, 0.3);">
+        <a href="index.html" class="btn btn-secondary btn-sm w-100 mb-2">Geri Dön</a>
+        <button onclick="logout()" class="btn btn-danger btn-sm w-100">Çıkış Yap</button>
+    </div>
+    <div class="container">
+        <h2>Ders Oluştur</h2>
+        <form id="lectureForm">
+            <div class="mb-3">
+                <label for="subjectInput" class="form-label">Ders Adı</label>
+                <input type="text" id="subjectInput" class="form-control" required>
+            </div>
+            <div class="mb-3">
+                <label for="dateInput" class="form-label">Tarih</label>
+                <input type="date" id="dateInput" class="form-control" required>
+            </div>
+            <button type="button" id="createLectureBtn" class="btn btn-info w-100">Ders Oluştur</button>
+        </form>
+        <div class="lecture-list">
+            <h3>Oluşturduğun Dersler</h3>
+            <div id="lectureList"></div>
+        </div>
+    </div>
+    <script>
+        const currentUser = JSON.parse(localStorage.getItem("currentUser"));
+        document.getElementById("teacherName").innerText = currentUser ? currentUser.fullName : "Misafir";
+        document.getElementById("createLectureBtn").addEventListener("click", function () {
+            const subject = document.getElementById("subjectInput").value.trim();
+            const date = document.getElementById("dateInput").value.trim();
+            const lectureCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+            const lectureKey = `${currentUser.username}_lecture_${lectureCode}`;
+            if (subject && date) {
+                let lectureData = { subject, date, code: lectureCode, students: [] };
+                localStorage.setItem(lectureKey, JSON.stringify(lectureData));
+                displayLectures();
+            }
+        });
+        function displayLectures() {
+            const lectureListContainer = document.getElementById("lectureList");
+            lectureListContainer.innerHTML = "";
+            const lectureKeys = Object.keys(localStorage).filter(key => key.startsWith(`${currentUser.username}_lecture_`));
+            lectureKeys.forEach(key => {
+                const lectureData = JSON.parse(localStorage.getItem(key));
+                const lectureItem = document.createElement("div");
+                lectureItem.classList.add("lecture-item");
+                const studentsList = lectureData.students.map(student => `<p>${student}</p>`).join("");
+                lectureItem.innerHTML = `
+                    <h5>${lectureData.subject} - ${lectureData.date}</h5>
+                    <p><strong>Ders Kodu:</strong> ${lectureData.code}</p>
+                    <div class="students-list">
+                        <h6>Katılan Öğrenciler:</h6>
+                        ${studentsList || "<p>Henüz katılan öğrenci yok.</p>"}
+                    </div>
+                    <button class="btn btn-danger btn-sm mt-2" onclick="deleteLecture('${key}')">Ders Sil</button>
+                `;
+                lectureListContainer.appendChild(lectureItem);
+            });
+        }
+        function deleteLecture(lectureKey) {
+            localStorage.removeItem(lectureKey);
+            displayLectures();
+        }
+        function logout() {
+            localStorage.removeItem("currentUser");
+            window.location.href = "index.html";
+        }
+        displayLectures();
+    </script>
+</body>
+</html>
