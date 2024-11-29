@@ -4,19 +4,112 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Öğrenci Paneli - Yoklama Sistemi</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/jsqr/dist/jsQR.js"></script>
     <style>
-        /* Styles Here */
+        body {
+            background: linear-gradient(to right, #0f2027, #203a43, #2c5364);
+            color: #fff;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        .profile-box {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 15px;
+            width: 200px;
+            text-align: center;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        .profile-box img {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            border: 3px solid #fff;
+            margin-bottom: 10px;
+        }
+
+        .profile-box h5 {
+            margin: 10px 0 5px;
+            font-size: 18px;
+        }
+
+        .container {
+            max-width: 600px;
+            margin-top: 150px;
+            padding: 20px;
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        h2 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .btn-info {
+            background-color: #1abc9c;
+            border: none;
+        }
+
+        .btn-info:hover {
+            background-color: #16a085;
+        }
+
+        #qr-reader {
+            width: 100%;
+            height: 300px;
+            margin-bottom: 20px;
+        }
+
+        #video {
+            width: 100%;
+            height: 300px;
+            border: 2px solid #fff;
+        }
     </style>
 </head>
 <body>
-    <div id="qr-reader">
-        <video id="video" width="300" height="300"></video>
-        <button id="start-scan" class="btn btn-info">Start QR Scan</button>
-        <input type="text" id="lectureCodeInput" class="form-control" placeholder="Enter QR Code" readonly>
+    <div class="profile-box">
+        <img src="https://via.placeholder.com/80" alt="Profile">
+        <h5 id="studentName"></h5>
+        <small>Öğrenci</small>
+        <hr style="border-color: rgba(255, 255, 255, 0.3);">
+        <a href="index.html" class="btn btn-secondary btn-sm w-100 mb-2">Geri Dön</a>
+        <button onclick="logout()" class="btn btn-danger btn-sm w-100">Çıkış Yap</button>
+    </div>
+
+    <div class="container">
+        <h2>Yoklama Kaydı</h2>
+
+        <!-- QR Code Reader -->
+        <div id="qr-reader">
+            <video id="video"></video>
+            <button id="start-scan" class="btn btn-info w-100">QR Kodu Tara</button>
+            <input type="text" id="lectureCodeInput" class="form-control mt-3" placeholder="QR Kodu Girin" readonly>
+        </div>
+
+        <!-- Attendance Form (manual) -->
+        <form id="attendanceForm">
+            <div class="mb-3">
+                <label for="lectureCodeInput" class="form-label">Ders Kodu</label>
+                <input type="text" id="manualLectureCodeInput" class="form-control" required>
+            </div>
+            <button type="button" id="submitAttendance" class="btn btn-info w-100">Kaydet</button>
+        </form>
     </div>
 
     <script>
+        const currentUser = JSON.parse(localStorage.getItem("currentUser"));
+        document.getElementById("studentName").innerText = currentUser ? currentUser.fullName : "Misafir";
+
+        // Handle QR Code Scanning
         document.getElementById("start-scan").addEventListener("click", function () {
             const video = document.getElementById('video');
             const canvas = document.createElement('canvas');
@@ -48,6 +141,7 @@
 
                     if (code) {
                         document.getElementById("lectureCodeInput").value = code.data;
+                        saveAttendance(code.data);  // Save attendance based on QR code
                         stopScanner();
                     } else {
                         requestAnimationFrame(scanQRCode);
@@ -63,6 +157,41 @@
                 tracks.forEach(track => track.stop());
             }
         });
+
+        // Handle manual attendance submission
+        document.getElementById("submitAttendance").addEventListener("click", function () {
+            const enteredLectureCode = document.getElementById("manualLectureCodeInput").value.trim();
+            saveAttendance(enteredLectureCode);
+        });
+
+        function saveAttendance(lectureCode) {
+            const lectureKeys = Object.keys(localStorage).filter(key => key.includes("_lecture_"));
+            let attendanceRegistered = false;
+
+            lectureKeys.forEach(key => {
+                const lectureData = JSON.parse(localStorage.getItem(key));
+
+                if (lectureData.code === lectureCode) {
+                    if (!lectureData.students.includes(currentUser.fullName)) {
+                        lectureData.students.push(currentUser.fullName);
+                        localStorage.setItem(key, JSON.stringify(lectureData));
+                        alert("Yoklama kaydedildi!");
+                    } else {
+                        alert("Zaten kayıtlısınız.");
+                    }
+                    attendanceRegistered = true;
+                }
+            });
+
+            if (!attendanceRegistered) {
+                alert("Geçersiz ders kodu.");
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem("currentUser");
+            window.location.href = "index.html";
+        }
     </script>
 </body>
 </html>
